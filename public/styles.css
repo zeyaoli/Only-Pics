@@ -16,6 +16,11 @@
     inset 2px 2px var(--button-highlight);
 }
 
+html,
+body {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   background-image: url("background.jpg");
@@ -29,18 +34,14 @@ body {
   height: 100vh;
 }
 
-.window-body {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
 #drawing {
   display: flex;
   flex-direction: column;
   width: 500px;
   z-index: 1000;
   position: absolute;
+  top: 15%;
+  left: 15%;
 }
 
 #myCanvas {

@@ -6,16 +6,27 @@ let paint_style = getComputedStyle(painting);
 canvas.width = parseInt(paint_style.getPropertyValue("width"));
 canvas.height = parseInt(paint_style.getPropertyValue("height"));
 
-// canvas.width = 492;
-// canvas.height = 230;
+function canvasBg() {
+  ctx.beginPath();
+  ctx.rect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "white";
+  ctx.fill();
+  for (let i = canvas.height / 4; i < canvas.height; i += canvas.height / 4) {
+    ctx.moveTo(0, i);
+    ctx.lineTo(canvas.width, i);
+    ctx.stroke();
+  }
+}
+canvasBg();
 
 let mouse = { x: 0, y: 0 };
 
 canvas.addEventListener(
   "mousemove",
   function (e) {
-    mouse.x = e.pageX - this.offsetLeft;
-    mouse.y = e.pageY - this.offsetTop;
+    let canvasRect = canvas.getBoundingClientRect();
+    mouse.x = e.pageX - canvasRect.left;
+    mouse.y = e.pageY - canvasRect.top;
   },
   false
 );
@@ -49,27 +60,6 @@ const onPaint = () => {
   ctx.stroke();
 };
 
-function canvasBg() {
-  ctx.beginPath();
-  ctx.rect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "white";
-  ctx.fill();
-}
-canvasBg();
-
-// function windowOpen(dataURL) {
-//   let id = Math.floor(Math.random() * 100);
-//   let myWindow = window.open(
-//     "",
-//     id,
-//     `width=${canvas.width}, height=${canvas.height}`
-//   );
-
-//   myWindow.document.write(
-//     `<img src=${dataURL} id="imgConverted" style="float: left; border: 2px solid" />`
-//   );
-// }
-
 // Socket io
 
 let socket = io.connect();
@@ -79,8 +69,13 @@ socket.on("connect", () => console.log(`Connected`));
 socket.on("sendImage", (data) => {
   //   console.log(data);
   let container = document.getElementById("messages");
-  container.innerHTML += insertDiv(data);
+  container.appendChild(insertDiv(data));
+  let lastDiv = document.getElementById(idArr[idArr.length - 1]);
+  dragElement(lastDiv);
+  //   hideMessage(lastDiv);
 });
+
+let idArr = [];
 
 function insertDiv(data) {
   let divWidth = Math.floor(Math.random() * window.innerWidth);
@@ -89,18 +84,22 @@ function insertDiv(data) {
   let ranID =
     Math.random().toString(36).substring(2, 15) +
     Math.random().toString(36).substring(2, 15);
-  return `
+  idArr.push(ranID);
+  console.log(idArr);
+
+  let message = document.createElement("div");
+  message.innerHTML = `
     <div class="message" id=${ranID} style="position: absolute; top: ${divHeight}px; left: ${divWidth}px; z-index:${zIndex}">
         <div class="title-bar">
             <div class="title-bar-text">New Message</div>
             <div class="title-bar-controls">
-                <button aria-label="Close"></button>
+                <button aria-label="Close" id="close"></button>
             </div>
         </div>
         ${insertImg(data)}
     </div>
-    
-    `;
+	`;
+  return message;
 }
 
 function insertImg(data) {
@@ -108,6 +107,26 @@ function insertImg(data) {
         <img src=${data} alt="image message"/>
     `;
 }
+
+function hideMessage(ele) {
+  let closeButton = document.getElementById("close");
+  closeButton.addEventListener("click", () => {
+    ele.style.display = "none";
+  });
+}
+
+let imgButton = document.getElementById("toImage");
+imgButton.addEventListener("click", () => {
+  let dataURL = canvas.toDataURL();
+  socket.emit("sendImage", dataURL);
+});
+
+let clearButton = document.getElementById("clearCanvas");
+clearButton.addEventListener("click", () => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  canvasBg();
+});
+// drag and drop function
 
 function dragElement(elmnt) {
   var pos1 = 0,
@@ -152,15 +171,3 @@ function dragElement(elmnt) {
     document.onmousemove = null;
   }
 }
-
-let imgButton = document.getElementById("toImage");
-imgButton.addEventListener("click", () => {
-  let dataURL = canvas.toDataURL();
-  socket.emit("sendImage", dataURL);
-});
-
-let clearButton = document.getElementById("clearCanvas");
-clearButton.addEventListener("click", () => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  canvasBg();
-});
